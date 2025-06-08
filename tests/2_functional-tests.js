@@ -177,7 +177,7 @@ suite('Functional Tests', function () {
             .end((err, res) => {
                 assert.equal(res.status, 200);
                 assert.isObject(res.body);
-                assert.equal(res.body.result, 'successfully updated');
+                assert.equal(res.body.error, 'no update field(s) sent');
                 assert.equal(res.body._id, testIssueId);
                 done();
             })
@@ -222,9 +222,10 @@ suite('Functional Tests', function () {
                 _id: 'invalid_id'
             })
             .end((err, res) => {
-                assert.equal(res.status, 400);
+                assert.equal(res.status, 200);
                 assert.isObject(res.body);
-                assert.equal(res.body.error, 'invalid _id');
+                assert.equal(res.body.error, 'could not delete');
+                assert.equal(res.body._id, 'invalid_id');
                 done();
             });
     })
@@ -233,7 +234,7 @@ suite('Functional Tests', function () {
             .keepOpen()
             .delete('/api/issues/test')
             .end((err, res) => {
-                assert.equal(res.status, 400);
+                assert.equal(res.status, 200);
                 assert.isObject(res.body);
                 assert.equal(res.body.error, 'missing _id');
                 done();

@@ -17,7 +17,7 @@ module.exports = function (app, myDataBase) {
         assigned_to,
         status_text
       } = req.query;
-      
+
       let query = {
         project,
         issue_title,
@@ -39,17 +39,21 @@ module.exports = function (app, myDataBase) {
           delete query[key];
         }
       });
-      
+
       myDataBase.find(
-        query
-      ).toArray((err, issues) => {
-        if (err) {
-          return res.status(500).json({
-            error: 'Database error'
-          });
-        }
-        res.status(200).json(issues);
-      })
+          query
+        )
+        .project({
+          project: 0
+        }) // Exclude project field from results
+        .toArray((err, issues) => {
+          if (err) {
+            return res.status(500).json({
+              error: 'Database error'
+            });
+          }
+          res.status(200).json(issues);
+        })
     })
 
     .post(function (req, res) {
@@ -122,6 +126,12 @@ module.exports = function (app, myDataBase) {
       status_text ? updateFields.status_text = status_text : null;
       open !== undefined ? updateFields.open = open : null;
 
+      if (Object.keys(updateFields).length === 0) {
+        return res.status(200).json({
+          error: 'no update field(s) sent',
+          _id
+        });
+      }
       updateFields.updated_on = new Date();
       myDataBase.updateOne({
           _id: new ObjectID(_id),
@@ -131,14 +141,9 @@ module.exports = function (app, myDataBase) {
         },
         (err, result) => {
           if (err) {
-            return res.status(500).json({
-              error: 'Database error'
-            });
-          }
-          if (result.matchedCount === 0) {
-            return res.status(404).json({
-              error: 'Issue not found',
-              id: _id
+            return res.status(200).json({
+              error: "could not update",
+              _id
             });
           }
           res.status(200).json({
@@ -155,14 +160,15 @@ module.exports = function (app, myDataBase) {
       const {
         _id
       } = req.body;
-      if( !_id) {
-        return res.status(400).json({
+      if (!_id) {
+        return res.status(200).json({
           error: 'missing _id'
         });
       }
       if (!ObjectID.isValid(_id)) {
-        return res.status(400).json({
-          error: 'invalid _id'
+        return res.status(200).json({
+          error: 'could not delete',
+          _id: _id
         });
       }
       myDataBase.deleteOne({
@@ -171,13 +177,9 @@ module.exports = function (app, myDataBase) {
         },
         (err, result) => {
           if (err) {
-            return res.status(500).json({
-              error: 'Database error'
-            });
-          }
-          if (result.deletedCount === 0) {
-            return res.status(404).json({
-              error: 'Issue not found'
+            return res.status(200).json({
+              error: 'could not delete',
+              _id: _id
             });
           }
           res.status(200).json({
