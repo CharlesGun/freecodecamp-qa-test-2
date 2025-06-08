@@ -10,9 +10,39 @@ module.exports = function (app, myDataBase) {
 
     .get(function (req, res) {
       let project = req.params.project;
-      myDataBase.find({
-        project: project
-      }).toArray((err, issues) => {
+      let {
+        issue_title,
+        issue_text,
+        created_by,
+        assigned_to,
+        status_text
+      } = req.query;
+      
+      let query = {
+        project,
+        issue_title,
+        issue_text,
+        created_by,
+        assigned_to,
+        status_text
+      }
+      if (req.query.open !== undefined && req.query.open !== null && req.query.open !== '') {
+        if (req.query.open === 'true') {
+          query.open = true;
+        } else {
+          query.open = false;
+        }
+      }
+      // Remove undefined properties from query
+      Object.keys(query).forEach(key => {
+        if (query[key] === undefined) {
+          delete query[key];
+        }
+      });
+      
+      myDataBase.find(
+        query
+      ).toArray((err, issues) => {
         if (err) {
           return res.status(500).json({
             error: 'Database error'
@@ -43,16 +73,22 @@ module.exports = function (app, myDataBase) {
         open: true
       }
 
+      if (!issue_title || !issue_text || !created_by) {
+        return res.status(200).json({
+          error: 'required field(s) missing'
+        })
+      }
+
       myDataBase.insertOne(issue, (err, result) => {
         if (err) {
           return res.status(500).json({
             error: 'Database error'
           });
         }
-        res.status(201).json({
-          message: 'Issue created successfully',
-          issue: result.ops[0]
-        });
+        delete result.ops[0].project;
+        res.status(200).json(
+          result.ops[0]
+        );
       })
     })
 
@@ -68,8 +104,8 @@ module.exports = function (app, myDataBase) {
         open
       } = req.body;
       if (!_id) {
-        return res.status(400).json({
-          error: 'Missing _id'
+        return res.status(200).json({
+          error: 'missing _id'
         });
       }
       if (!ObjectID.isValid(_id)) {
@@ -106,8 +142,8 @@ module.exports = function (app, myDataBase) {
             });
           }
           res.status(200).json({
-            message: 'Issue updated successfully',
-            issue: updateFields
+            result: 'successfully updated',
+            _id: _id,
           });
         }
       );
@@ -119,9 +155,14 @@ module.exports = function (app, myDataBase) {
       const {
         _id
       } = req.body;
-      if (!_id || !ObjectID.isValid(_id)) {
+      if( !_id) {
         return res.status(400).json({
-          error: 'Missing _id'
+          error: 'missing _id'
+        });
+      }
+      if (!ObjectID.isValid(_id)) {
+        return res.status(400).json({
+          error: 'invalid _id'
         });
       }
       myDataBase.deleteOne({
@@ -140,7 +181,7 @@ module.exports = function (app, myDataBase) {
             });
           }
           res.status(200).json({
-            message: 'successfully deleted',
+            result: 'successfully deleted',
             _id
           });
         }
