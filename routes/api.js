@@ -15,10 +15,12 @@ module.exports = function (app, myDataBase) {
         issue_text,
         created_by,
         assigned_to,
-        status_text
+        status_text,
+        _id
       } = req.query;
 
       let query = {
+        _id: _id ? ObjectID(_id) : undefined,
         project,
         issue_title,
         issue_text,
@@ -140,6 +142,12 @@ module.exports = function (app, myDataBase) {
           $set: updateFields
         },
         (err, result) => {
+          if (result.matchedCount === 0) {
+            return res.status(200).json({
+              error: 'could not update',
+              _id
+            });
+          }
           if (err) {
             return res.status(200).json({
               error: "could not update",
@@ -176,6 +184,12 @@ module.exports = function (app, myDataBase) {
           project: project
         },
         (err, result) => {
+          if (result.deletedCount === 0) {
+            return res.status(200).json({
+              error: 'could not delete',
+              _id: _id
+            });
+          }
           if (err) {
             return res.status(200).json({
               error: 'could not delete',
